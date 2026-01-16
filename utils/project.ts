@@ -58,14 +58,21 @@ export const getProjectCalculatedStats = (
     }
   }
 
+  // Calculate project deadline as the latest deadline among root tasks
+  // Fix: Derive project deadline from root tasks to avoid property access error on Project type
+  const projectDeadline = rootTasks.reduce((max, t) => {
+    if (!t.deadline) return max;
+    return !max || t.deadline > max ? t.deadline : max;
+  }, '');
+
   // Status logic
   let status: 'normal' | 'tense' | 'overdue' = 'normal';
-  if (project.deadline) {
+  if (projectDeadline) {
     const todayStr = new Date().toISOString().split('T')[0];
-    if (expectedCompletionDate > project.deadline || (!isCompleted && todayStr > project.deadline)) {
+    if (expectedCompletionDate > projectDeadline || (!isCompleted && todayStr > projectDeadline)) {
       status = 'overdue';
     } else {
-      const diff = (new Date(project.deadline).getTime() - new Date(expectedCompletionDate).getTime()) / (1000 * 60 * 60 * 24);
+      const diff = (new Date(projectDeadline).getTime() - new Date(expectedCompletionDate).getTime()) / (1000 * 60 * 60 * 24);
       if (diff >= 0 && diff < 3) {
         status = 'tense';
       }

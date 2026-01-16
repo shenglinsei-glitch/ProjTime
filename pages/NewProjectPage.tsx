@@ -8,13 +8,8 @@ const NewProjectPage: React.FC = () => {
   const { projects, tasks, addProject, addTask } = useApp();
   const navigate = useNavigate();
   const [name, setName] = useState('');
-  const [deadline, setDeadline] = useState('');
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [area, setArea] = useState('');
-  const [methods, setMethods] = useState('');
-  const [tags, setTags] = useState('');
   const [sourceProjectId, setSourceProjectId] = useState('');
-  const [copyEstimates, setCopyEstimates] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,11 +19,7 @@ const NewProjectPage: React.FC = () => {
     await addProject({
       id: newProjectId,
       name: name.trim(),
-      deadline: deadline || undefined,
-      startDate: startDate || undefined,
       area: area ? parseFloat(area) : undefined,
-      constructionMethods: methods ? methods.split(',').map(m => m.trim()) : [],
-      tags: tags ? tags.split(',').map(t => t.trim()) : [],
       createdAt: Date.now()
     });
 
@@ -36,149 +27,55 @@ const NewProjectPage: React.FC = () => {
       const sourceTasks = tasks.filter(t => t.projectId === sourceProjectId);
       const taskMap: Record<string, string> = {};
       
-      for (const st of sourceTasks) {
-        if (!st.parentTaskId) {
-          const newId = crypto.randomUUID();
-          taskMap[st.id] = newId;
-          await addTask({
-            ...st,
-            id: newId,
-            projectId: newProjectId,
-            estimatedMin: copyEstimates ? st.estimatedMin : 0,
-          });
-        }
-      }
-
-      for (const st of sourceTasks) {
-        if (st.parentTaskId) {
+      // 按层级复制
+      const copyRecursive = async (parentId?: string, newParentId?: string) => {
+        const levelTasks = sourceTasks.filter(t => t.parentTaskId === parentId);
+        for (const st of levelTasks) {
           const newId = crypto.randomUUID();
           await addTask({
             ...st,
             id: newId,
             projectId: newProjectId,
-            parentTaskId: taskMap[st.parentTaskId],
-            estimatedMin: copyEstimates ? st.estimatedMin : 0
+            parentTaskId: newParentId,
+            startDate: undefined, // 清空日期
+            deadline: undefined
           });
+          await copyRecursive(st.id, newId);
         }
-      }
+      };
+      await copyRecursive();
     }
 
     navigate(`/project/${newProjectId}`);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-12">
+    <div className="min-h-screen bg-white">
       <HeaderBar />
-      <main className="p-4 max-w-lg mx-auto">
-        <h2 className="text-2xl font-bold mb-6">新規プロジェクト作成</h2>
-        <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-xl border shadow-sm">
-          <div>
-            <label className="block text-sm font-semibold mb-2">プロジェクト名</label>
-            <input 
-              type="text" 
-              required
-              value={name} 
-              onChange={e => setName(e.target.value)}
-              className="w-full border rounded-lg p-3 outline-blue-600"
-              placeholder="例: ウェブサイトのリニューアル"
-            />
+      <main className="p-6 max-w-lg mx-auto">
+        <h2 className="text-2xl font-black text-gray-900 mb-8">新規プロジェクト</h2>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-1">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">プロジェクト名</label>
+            <input required value={name} onChange={e => setName(e.target.value)} className="w-full border-2 border-gray-100 rounded-2xl p-4 outline-none focus:border-[#53BEE8] font-bold" placeholder="プロジェクト名を入力" />
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold mb-2">開始日</label>
-              <input 
-                type="date" 
-                value={startDate} 
-                onChange={e => setStartDate(e.target.value)}
-                className="w-full border rounded-lg p-3 outline-blue-600"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-2">期限</label>
-              <input 
-                type="date" 
-                value={deadline} 
-                onChange={e => setDeadline(e.target.value)}
-                className="w-full border rounded-lg p-3 outline-blue-600"
-              />
-            </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">面積 (数值)</label>
+            <input type="number" step="any" value={area} onChange={e => setArea(e.target.value)} className="w-full border-2 border-gray-100 rounded-2xl p-4 outline-none focus:border-[#53BEE8] font-bold" placeholder="例: 120.5" />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold mb-2">面積 (数值)</label>
-            <input 
-              type="number" 
-              step="any"
-              value={area} 
-              onChange={e => setArea(e.target.value)}
-              className="w-full border rounded-lg p-3 outline-blue-600"
-              placeholder="例: 120.5"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-2">工法 (カンマ区切り)</label>
-            <input 
-              type="text" 
-              value={methods} 
-              onChange={e => setMethods(e.target.value)}
-              className="w-full border rounded-lg p-3 outline-blue-600"
-              placeholder="例: 木造, 鉄骨造"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-2">タグ (カンマ区切り)</label>
-            <input 
-              type="text" 
-              value={tags} 
-              onChange={e => setTags(e.target.value)}
-              className="w-full border rounded-lg p-3 outline-blue-600"
-              placeholder="例: 公共, 民間, 急ぎ"
-            />
-          </div>
-
-          <div className="pt-4 border-t">
-            <label className="block text-sm font-semibold mb-2">既存プロジェクトの構成をコピー</label>
-            <select 
-              className="w-full border rounded-lg p-3 outline-blue-600"
-              value={sourceProjectId}
-              onChange={e => setSourceProjectId(e.target.value)}
-            >
-              <option value="">-- 新規作成 --</option>
-              {projects.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
+          <div className="space-y-1 pt-4 border-t">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">テンプレートから構成をコピー</label>
+            <select className="w-full border-2 border-gray-100 rounded-2xl p-4 outline-none focus:border-[#53BEE8] bg-white font-bold text-gray-600" value={sourceProjectId} onChange={e => setSourceProjectId(e.target.value)}>
+              <option value="">-- 新規作成 (空) --</option>
+              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
 
-          {sourceProjectId && (
-            <div className="flex items-center gap-2 text-sm">
-              <input 
-                type="checkbox" 
-                id="copyEst" 
-                checked={copyEstimates} 
-                onChange={e => setCopyEstimates(e.target.checked)}
-              />
-              <label htmlFor="copyEst">見積り時間もコピーする</label>
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-4">
-            <button 
-              type="button" 
-              onClick={() => navigate(-1)}
-              className="flex-1 px-4 py-3 bg-gray-100 rounded-lg font-semibold"
-            >
-              キャンセル
-            </button>
-            <button 
-              type="submit" 
-              className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold shadow-lg hover:bg-blue-700"
-            >
-              作成する
-            </button>
+          <div className="flex gap-4 pt-6">
+            <button type="button" onClick={() => navigate(-1)} className="flex-1 px-4 py-4 text-gray-400 font-black uppercase text-xs tracking-widest hover:bg-gray-50 rounded-2xl transition">戻る</button>
+            <button type="submit" className="flex-1 px-4 py-4 bg-[#53BEE8] text-white rounded-2xl font-black shadow-xl shadow-blue-100 tracking-widest uppercase text-xs active:scale-95 transition">作成</button>
           </div>
         </form>
       </main>

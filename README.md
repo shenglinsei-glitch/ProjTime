@@ -1,40 +1,20 @@
 <div align="center">
-  <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# ProjTime
+# Run and deploy your AI Studio app
 
-作業時間予測（PWA）— 项目 / 任务的时间预测与记录工具。
+This contains everything you need to run your app locally.
 
----
+View your app in AI Studio: https://ai.studio/apps/drive/1K8j3Cef4qTsaexgMxht4XRZVqztcTWpZ
 
 ## Run Locally
 
-**Prerequisites:** Node.js
+**Prerequisites:**  Node.js
+
 
 1. Install dependencies:
-   - `npm install`
-
-2. Start dev server:
-   - `npm run dev`
-
-3. Build (outputs to `docs/`):
-   - `npm run build`
-
----
-
-## Deploy (GitHub Pages)
-
-本项目已配置为 build 输出到 `docs/`，可直接使用 GitHub Pages 部署：
-
-- Settings → Pages
-- Source: Deploy from a branch
-- Branch: `main`
-- Folder: `/docs`
-
----
-
-## AI Studio link (optional)
-
-View the original AI Studio app (if applicable):  
-https://ai.studio/apps/drive/1K8j3Cef4qTsaexgMxht4XRZVqztcTWpZ
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`

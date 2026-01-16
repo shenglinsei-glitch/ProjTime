@@ -2,12 +2,14 @@
 export interface Project {
   id: string;
   name: string;
-  deadline?: string;
   createdAt: number;
   area?: number;
   constructionMethods?: string[];
   tags?: string[];
-  startDate?: string;
+  // 新規フィールド
+  projectStartDate?: string;
+  staff?: string;
+  amount?: number;
 }
 
 export interface MethodTag {
@@ -23,6 +25,10 @@ export interface Task {
   estimatedMin: number;
   isManualEstimate: boolean;
   parentTaskId?: string;
+  // 新增字段
+  startDate?: string;
+  deadline?: string;
+  method?: string; // 预测影响因子
 }
 
 export interface TimeEntry {
@@ -33,6 +39,7 @@ export interface TimeEntry {
   actualMin: number;
   note?: string;
   isExcludedFromStats?: boolean;
+  isCompleted?: boolean; // 本次录入是否导致任务完成
 }
 
 export enum CalendarOverrideType {
@@ -53,8 +60,8 @@ export interface CalendarOverride {
 export interface HolidayCache {
   dates: string[];
   lastUpdated: number;
-  source: string; // "holidays-jp" 等
-  years: number[]; // キャッシュされている年度のリスト
+  source: string;
+  years: number[];
 }
 
 export interface CalendarSettings {
