@@ -15,9 +15,39 @@ const formatMobileTime = (mins: number): string => {
   return `${mins}m`;
 };
 
-const TaskEditDialog = ({ project, task, onClose, onSave, onDelete, taskTypes, parts, methodTags, tasks, timeEntries, taskFolders }: any) => {
+const TaskTypeSelectionDialog = ({ onSelect, onClose }: { onSelect: (type: 'standard' | 'free') => void, onClose: () => void }) => (
+  <div className="fixed inset-0 z-[700] flex items-end sm:items-center justify-center p-4">
+    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
+    <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-w-sm w-full p-6 animate-in slide-in-from-bottom duration-300">
+      <h3 className="text-lg font-black text-gray-800 mb-6 text-center">タスク形式を選択</h3>
+      <div className="grid grid-cols-1 gap-3">
+        <button 
+          onClick={() => onSelect('standard')}
+          className="flex flex-col items-start p-4 bg-blue-50/50 hover:bg-blue-50 border border-blue-100 rounded-2xl transition group active:scale-[0.98] text-left"
+        >
+          <span className="text-sm font-black text-blue-600">標準タスク</span>
+          <span className="text-[10px] font-bold text-blue-400/70 mt-1">過去の実績に基づき時間を自動予測します</span>
+        </button>
+        <button 
+          onClick={() => onSelect('free')}
+          className="flex flex-col items-start p-4 bg-gray-50/50 hover:bg-gray-50 border border-gray-100 rounded-2xl transition active:scale-[0.98] text-left"
+        >
+          <span className="text-sm font-black text-gray-700">自由タスク</span>
+          <span className="text-[10px] font-bold text-gray-400 mt-1">統計・予測の対象外となる単発のタスクです</span>
+        </button>
+      </div>
+      <button onClick={onClose} className="w-full mt-4 py-3 text-gray-400 font-bold text-sm">キャンセル</button>
+    </div>
+  </div>
+);
+
+const TaskEditDialog = ({ project, task, onClose, onSave, onDelete, taskTypes, parts, methodTags, tasks, timeEntries, taskFolders, initialMode }: any) => {
+  // If editing existing task, use its isFreeTask flag. If new, use the mode from selection.
+  const isFreeMode = task?.id ? task.isFreeTask : initialMode === 'free';
+  
   const [selectedFolderId, setSelectedFolderId] = useState<string>('');
   const [taskTypeId, setTaskTypeId] = useState(task?.taskTypeId || '');
+  const [freeTaskName, setFreeTaskName] = useState(task?.name || '');
   const [partId, setPartId] = useState(task?.partId || '');
   const [est, setEst] = useState(task?.estimatedMin || 0);
   const [startDate, setStartDate] = useState(task?.startDate || '');
@@ -40,7 +70,8 @@ const TaskEditDialog = ({ project, task, onClose, onSave, onDelete, taskTypes, p
   });
 
   useEffect(() => {
-    if (!task?.id && taskTypeId) {
+    // Only auto-calculate suggested time for standard tasks
+    if (!task?.id && !isFreeMode && taskTypeId) {
       const stats = calculateTaskMedians(tasks, timeEntries);
       const tt = taskTypes.find((t: TaskType) => t.id === taskTypeId);
       const stat = stats.find(s => s.taskTypeId === taskTypeId || s.taskName === tt?.name);
@@ -56,26 +87,35 @@ const TaskEditDialog = ({ project, task, onClose, onSave, onDelete, taskTypes, p
       }
       setEst(Math.round(baseMedian * partMultiplier * methodMultiplier));
     }
-  }, [taskTypeId, partId, project.constructionMethods, methodTags, tasks, timeEntries, taskTypes, parts, task?.id]);
+  }, [taskTypeId, partId, project.constructionMethods, methodTags, tasks, timeEntries, taskTypes, parts, task?.id, isFreeMode]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!taskTypeId) return;
-    const selectedType = taskTypes.find((t: any) => t.id === taskTypeId);
-    const selectedPart = parts.find((p: any) => p.id === partId);
-    const displayName = selectedPart ? `${selectedType?.name} (${selectedPart?.name})` : (selectedType?.name || '');
+    if (!isFreeMode && !taskTypeId) return;
+    if (isFreeMode && !freeTaskName.trim()) return;
+
+    let finalName = '';
+    if (isFreeMode) {
+      finalName = freeTaskName.trim();
+    } else {
+      const selectedType = taskTypes.find((t: any) => t.id === taskTypeId);
+      const selectedPart = parts.find((p: any) => p.id === partId);
+      finalName = selectedPart ? `${selectedType?.name} (${selectedPart?.name})` : (selectedType?.name || '');
+    }
+
     onSave({ 
       ...task,
       id: task?.id || crypto.randomUUID(), 
       projectId: project.id, 
-      name: displayName,
-      taskTypeId,
+      name: finalName,
+      taskTypeId: isFreeMode ? undefined : taskTypeId,
       partId: partId || undefined,
       estimatedMin: est, 
       startDate: startDate || undefined,
       deadline: deadline || undefined,
       labels: task?.labels || [], 
-      isManualEstimate: true 
+      isManualEstimate: true,
+      isFreeTask: isFreeMode
     }); 
   };
 
@@ -83,24 +123,41 @@ const TaskEditDialog = ({ project, task, onClose, onSave, onDelete, taskTypes, p
     <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 overflow-y-auto max-h-[90vh]">
-        <h3 className="text-xl font-bold mb-6 text-gray-800 tracking-tight">{task?.id ? 'タスク設定' : '新規タスク'}</h3>
+        <h3 className="text-xl font-bold mb-6 text-gray-800 tracking-tight">
+          {task?.id ? 'タスク設定' : (isFreeMode ? '自由タスク作成' : '標準タスク作成')}
+        </h3>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-4">
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-widest">フォルダー</label>
-              <select value={selectedFolderId} onChange={e => { setSelectedFolderId(e.target.value); setTaskTypeId(''); }} className="w-full border-2 border-gray-100 rounded-xl p-3 text-sm outline-none focus:border-[#53BEE8] bg-white font-bold">
-                <option value="">選択してください</option>
-                <option value="uncategorized">未分類</option>
-                {taskFolders.map((f: TaskFolder) => <option key={f.id} value={f.id}>{f.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-widest">タスク種別</label>
-              <select required disabled={!selectedFolderId} value={taskTypeId} onChange={e => setTaskTypeId(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl p-3 text-sm outline-none focus:border-[#53BEE8] bg-white font-bold disabled:bg-gray-50 disabled:text-gray-300">
-                <option value="">タスクを選択</option>
-                {filteredTaskTypes.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
-            </div>
+            {isFreeMode ? (
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-widest">タスク名</label>
+                <input 
+                  required 
+                  value={freeTaskName} 
+                  onChange={e => setFreeTaskName(e.target.value)} 
+                  placeholder="タスク名を入力"
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 text-sm outline-none focus:border-[#53BEE8] bg-white font-bold"
+                />
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-widest">フォルダー</label>
+                  <select value={selectedFolderId} onChange={e => { setSelectedFolderId(e.target.value); setTaskTypeId(''); }} className="w-full border-2 border-gray-100 rounded-xl p-3 text-sm outline-none focus:border-[#53BEE8] bg-white font-bold">
+                    <option value="">選択してください</option>
+                    <option value="uncategorized">未分類</option>
+                    {taskFolders.map((f: TaskFolder) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-widest">タスク種別</label>
+                  <select required disabled={!selectedFolderId} value={taskTypeId} onChange={e => setTaskTypeId(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl p-3 text-sm outline-none focus:border-[#53BEE8] bg-white font-bold disabled:bg-gray-50 disabled:text-gray-300">
+                    <option value="">タスクを選択</option>
+                    {filteredTaskTypes.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+              </>
+            )}
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-widest">部位 (任意)</label>
               <select value={partId} onChange={e => setPartId(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl p-3 text-sm outline-none focus:border-[#53BEE8] bg-white font-bold">
@@ -113,10 +170,10 @@ const TaskEditDialog = ({ project, task, onClose, onSave, onDelete, taskTypes, p
             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-widest">予定時間</label>
             <button type="button" onClick={() => setShowPicker(true)} className="w-full text-left border-2 border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-700 bg-gray-50/50 truncate">
               {formatMobileTime(est)}
-              <span className="text-[10px] text-gray-300 ml-2 font-normal">(実績と倍率に基づき自動計算)</span>
+              {!isFreeMode && <span className="text-[10px] text-gray-300 ml-2 font-normal">(実績と倍率に基づき自動計算)</span>}
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-4 border-t pt-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-5">
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-widest">開始日</label>
               <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl p-3 text-xs outline-none font-bold" />
@@ -153,8 +210,11 @@ const ProjectDetailPage: React.FC = () => {
   const [isEditingTasksMode, setIsEditingTasksMode] = useState(false);
   const [isInfoExpanded, setIsInfoExpanded] = useState(true);
   const [tempProject, setTempProject] = useState<Project | null>(null);
+
+  const [showTypeSelector, setShowTypeSelector] = useState(false);
   const [showTaskDialog, setShowTaskDialog] = useState(false);
-  const [editingTaskForDialog, setEditingTaskForDialog] = useState<{task?: Task, parentId?: string} | null>(null);
+  const [editingTaskForDialog, setEditingTaskForDialog] = useState<{task?: Task, parentId?: string, mode?: 'standard' | 'free'} | null>(null);
+
   const [showTimePicker, setShowTimePicker] = useState<{taskId: string, type: 'est' | 'act'} | null>(null);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -200,12 +260,10 @@ const ProjectDetailPage: React.FC = () => {
 
     const handleAddAction = (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (isParent) {
-        setEditingTaskForDialog({ parentId: task.id });
-      } else {
-        setEditingTaskForDialog({ parentId: task.parentTaskId });
-      }
-      setShowTaskDialog(true);
+      setEditingTaskForDialog({ 
+        parentId: isParent ? task.id : task.parentTaskId 
+      });
+      setShowTypeSelector(true);
     };
 
     const handleRowClick = () => {
@@ -235,9 +293,14 @@ const ProjectDetailPage: React.FC = () => {
                   {expanded ? '▼' : '▶'}
                 </button>
               )}
-              <span className={`truncate font-bold tracking-tight ${isParent ? 'text-[15px]' : 'text-[13px]'} ${stats.isCompleted ? 'text-gray-400 line-through font-medium' : 'text-gray-900'}`}>
-                {task.name}
-              </span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className={`truncate font-bold tracking-tight ${isParent ? 'text-[15px]' : 'text-[13px]'} ${stats.isCompleted ? 'text-gray-400 line-through font-medium' : 'text-gray-900'}`}>
+                  {task.name}
+                </span>
+                {task.isFreeTask && (
+                  <span className="shrink-0 text-[8px] font-black bg-gray-100 text-gray-400 px-1 py-0.5 rounded border border-gray-200 uppercase tracking-tighter">自由</span>
+                )}
+              </div>
             </div>
             
             <div className="flex items-center gap-3 shrink-0">
@@ -281,6 +344,17 @@ const ProjectDetailPage: React.FC = () => {
         {expanded && subtasks.map(st => <TaskRow key={st.id} task={st} depth={depth + 1} />)}
       </div>
     );
+  };
+
+  const handleCreateTaskClick = () => {
+    setEditingTaskForDialog({});
+    setShowTypeSelector(true);
+  };
+
+  const handleTypeSelected = (mode: 'standard' | 'free') => {
+    setShowTypeSelector(false);
+    setEditingTaskForDialog({ ...editingTaskForDialog, mode });
+    setShowTaskDialog(true);
   };
 
   return (
@@ -329,14 +403,12 @@ const ProjectDetailPage: React.FC = () => {
           
           {isInfoExpanded && (
             <div className="p-5 space-y-6">
-              {/* 两列紧凑网格 */}
               <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                 <DetailRow label="面積" isEditing={isEditingProject} value={originalProject.area ? `${originalProject.area} ㎡` : ''} editNode={<input type="number" className="w-full border-b outline-none font-bold focus:border-[#53BEE8] py-1 text-right text-sm" value={tempProject.area || ''} onChange={e => setTempProject({...tempProject, area: parseFloat(e.target.value) || 0})}/>} />
                 <DetailRow label="開始日" isEditing={isEditingProject} value={originalProject.projectStartDate || ''} editNode={<input type="date" className="w-full border-b outline-none font-bold focus:border-[#53BEE8] py-1 text-sm" value={tempProject.projectStartDate || ''} onChange={e => setTempProject({...tempProject, projectStartDate: e.target.value})}/>} />
                 <DetailRow label="担当者" isEditing={isEditingProject} value={originalProject.staff || ''} editNode={<input type="text" className="w-full border-b outline-none font-bold focus:border-[#53BEE8] py-1 text-sm" value={tempProject.staff || ''} onChange={e => setTempProject({...tempProject, staff: e.target.value})}/>} />
                 <DetailRow label="金額" isEditing={isEditingProject} value={originalProject.amount ? `¥${originalProject.amount.toLocaleString()}` : ''} editNode={<input type="number" className="w-full border-b outline-none font-bold focus:border-[#53BEE8] py-1 text-right text-sm" value={tempProject.amount || ''} onChange={e => setTempProject({...tempProject, amount: parseInt(e.target.value) || 0})}/>} />
                 
-                {/* 適用工法 (Span full width if needed or stay in grid) */}
                 <div className="col-span-2 pt-1">
                   <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider block mb-1.5">適用工法</span>
                   {isEditingProject ? (
@@ -362,7 +434,6 @@ const ProjectDetailPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* 独立状态区 */}
               <div className="pt-5 border-t border-gray-50 flex flex-col sm:flex-row justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex justify-between items-end mb-1.5">
@@ -395,7 +466,7 @@ const ProjectDetailPage: React.FC = () => {
               <button onClick={() => setIsEditingTasksMode(!isEditingTasksMode)} className={`p-1.5 rounded-lg transition border-2 ${isEditingTasksMode ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white border-gray-100 text-gray-400 hover:bg-gray-50'}`} title="タスクを編集">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-5M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
               </button>
-              <button onClick={() => { setEditingTaskForDialog({}); setShowTaskDialog(true); }} className="bg-[#53BEE8] text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-lg shadow-blue-100 active:scale-95 transition">+ 追加</button>
+              <button onClick={handleCreateTaskClick} className="bg-[#53BEE8] text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-lg shadow-blue-100 active:scale-95 transition">+ 追加</button>
             </div>
           </div>
           <div className="divide-y divide-gray-50">
@@ -407,8 +478,25 @@ const ProjectDetailPage: React.FC = () => {
         </div>
       </main>
 
+      {showTypeSelector && (
+        <TaskTypeSelectionDialog onSelect={handleTypeSelected} onClose={() => setShowTypeSelector(false)} />
+      )}
+
       {showTaskDialog && (
-        <TaskEditDialog project={originalProject} task={editingTaskForDialog?.task || { parentTaskId: editingTaskForDialog?.parentId }} taskTypes={taskTypes} parts={parts} methodTags={methodTags} tasks={tasks} timeEntries={timeEntries} taskFolders={taskFolders} onClose={() => setShowTaskDialog(false)} onSave={async (t: Task) => { if (t.id && projectTasks.some(pt => pt.id === t.id)) await updateTask(t); else await addTask(t); setShowTaskDialog(false); }} onDelete={async (tid: string) => { setTaskToDeleteId(tid); setShowTaskDialog(false); }} />
+        <TaskEditDialog 
+          project={originalProject} 
+          task={editingTaskForDialog?.task || { parentTaskId: editingTaskForDialog?.parentId }} 
+          initialMode={editingTaskForDialog?.mode}
+          taskTypes={taskTypes} 
+          parts={parts} 
+          methodTags={methodTags} 
+          tasks={tasks} 
+          timeEntries={timeEntries} 
+          taskFolders={taskFolders} 
+          onClose={() => setShowTaskDialog(false)} 
+          onSave={async (t: Task) => { if (t.id && projectTasks.some(pt => pt.id === t.id)) await updateTask(t); else await addTask(t); setShowTaskDialog(false); }} 
+          onDelete={async (tid: string) => { setTaskToDeleteId(tid); setShowTaskDialog(false); }} 
+        />
       )}
 
       <TimePickerDialog isOpen={!!showTimePicker} onClose={() => setShowTimePicker(null)} initialMinutes={0} showCompletionToggle={true} onSave={(mins, isCompleted) => { if (showTimePicker) { addTimeEntry({ id: crypto.randomUUID(), projectId: originalProject.id, taskId: showTimePicker.taskId, date: new Date().toISOString().split('T')[0], actualMin: mins, isCompleted }); } }} title="実績時間を入力" />

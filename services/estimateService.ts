@@ -11,7 +11,8 @@ export const calculateTaskMedians = (
   allEntries.forEach(entry => {
     if (entry.isExcludedFromStats) return;
     const task = allTasks.find(t => t.id === entry.taskId);
-    if (!task) return;
+    // 自由タスク（isFreeTask）は統計から除外する
+    if (!task || task.isFreeTask) return;
     
     // Preference taskTypeId for stability
     const key = task.taskTypeId || task.name;

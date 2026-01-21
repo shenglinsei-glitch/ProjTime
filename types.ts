@@ -55,7 +55,8 @@ export interface Task {
   parentTaskId?: string;
   startDate?: string;
   deadline?: string;
-  // method field removed - now inherited from project
+  // 新規：自由タスク（統計除外）フラグ
+  isFreeTask?: boolean;
 }
 
 export interface TimeEntry {
