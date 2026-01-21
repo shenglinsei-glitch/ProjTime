@@ -1,8 +1,8 @@
 
-import { Project, Task, TimeEntry, CalendarSettings, CalendarOverride, MethodTag } from '../types';
+import { Project, Task, TimeEntry, CalendarSettings, CalendarOverride, MethodTag, TaskType, Part, TaskFolder } from '../types';
 
 const DB_NAME = 'TimePredictorDB';
-const DB_VERSION = 2;
+const DB_VERSION = 4; // Incremented version to add taskFolders
 
 class Store {
   private db: IDBDatabase | null = null;
@@ -18,6 +18,9 @@ class Store {
         if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'id' });
         if (!db.objectStoreNames.contains('overrides')) db.createObjectStore('overrides', { keyPath: 'id' });
         if (!db.objectStoreNames.contains('methodTags')) db.createObjectStore('methodTags', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('taskTypes')) db.createObjectStore('taskTypes', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('parts')) db.createObjectStore('parts', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('taskFolders')) db.createObjectStore('taskFolders', { keyPath: 'id' });
       };
       request.onsuccess = () => {
         this.db = request.result;

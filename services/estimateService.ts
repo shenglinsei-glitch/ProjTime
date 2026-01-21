@@ -1,32 +1,35 @@
 
-import { TimeEntry, TaskStats } from '../types';
+import { TimeEntry, TaskStats, Task } from '../types';
 
 export const calculateTaskMedians = (
-  allTasks: { name: string, id: string }[],
+  allTasks: Task[],
   allEntries: TimeEntry[]
 ): TaskStats[] => {
-  const groupedEntries: Record<string, number[]> = {};
+  const groupedEntries: Record<string, { name: string, times: number[] }> = {};
   
-  // Aggregate actual times by task NAME
+  // Aggregate actual times by taskTypeId (standardized) or name (legacy)
   allEntries.forEach(entry => {
     if (entry.isExcludedFromStats) return;
     const task = allTasks.find(t => t.id === entry.taskId);
     if (!task) return;
     
-    if (!groupedEntries[task.name]) groupedEntries[task.name] = [];
-    groupedEntries[task.name].push(entry.actualMin);
+    // Preference taskTypeId for stability
+    const key = task.taskTypeId || task.name;
+    if (!groupedEntries[key]) groupedEntries[key] = { name: task.name, times: [] };
+    groupedEntries[key].times.push(entry.actualMin);
   });
 
-  return Object.entries(groupedEntries).map(([name, times]) => {
-    times.sort((a, b) => a - b);
-    const mid = Math.floor(times.length / 2);
-    const median = times.length % 2 !== 0 ? times[mid] : (times[mid - 1] + times[mid]) / 2;
+  return Object.entries(groupedEntries).map(([key, data]) => {
+    data.times.sort((a, b) => a - b);
+    const mid = Math.floor(data.times.length / 2);
+    const median = data.times.length % 2 !== 0 ? data.times[mid] : (data.times[mid - 1] + data.times[mid]) / 2;
     
     return {
-      taskName: name,
-      count: times.length,
+      taskName: data.name,
+      taskTypeId: key.length > 20 ? key : undefined, // Heuristic to detect UUIDs
+      count: data.times.length,
       medianMin: median,
-      isSmallSample: times.length < 3
+      isSmallSample: data.times.length < 3
     };
   });
 };

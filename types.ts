@@ -4,7 +4,7 @@ export interface Project {
   name: string;
   createdAt: number;
   area?: number;
-  constructionMethods?: string[];
+  constructionMethods?: string[]; // IDs of MethodTag
   tags?: string[];
   // 新規フィールド
   projectStartDate?: string;
@@ -15,20 +15,47 @@ export interface Project {
 export interface MethodTag {
   id: string;
   name: string;
+  multiplier?: number; // Added for prediction
+}
+
+// 新設: 文件夹管理
+export interface TaskFolder {
+  id: string;
+  name: string;
+  order: number;
+}
+
+// 新設: 任务名称管理
+export interface TaskType {
+  id: string;
+  name: string;
+  folderId?: string; // Optional folder association
+  order: number;
+  isDisabled: boolean;
+}
+
+// 新設: 部位管理
+export interface Part {
+  id: string;
+  name: string;
+  difficultyMultiplier: number;
+  order: number;
+  isDisabled: boolean;
 }
 
 export interface Task {
   id: string;
   projectId: string;
-  name: string;
+  name: string; // Keep for display/backward compatibility, but taskTypeId is source of truth
+  taskTypeId?: string; // Standardized ID
+  partId?: string; // Standardized Part ID
   labels: string[];
   estimatedMin: number;
   isManualEstimate: boolean;
   parentTaskId?: string;
-  // 新增字段
   startDate?: string;
   deadline?: string;
-  method?: string; // 预测影响因子
+  // method field removed - now inherited from project
 }
 
 export interface TimeEntry {
@@ -39,7 +66,7 @@ export interface TimeEntry {
   actualMin: number;
   note?: string;
   isExcludedFromStats?: boolean;
-  isCompleted?: boolean; // 本次录入是否导致任务完成
+  isCompleted?: boolean;
 }
 
 export enum CalendarOverrideType {
@@ -74,6 +101,7 @@ export interface CalendarSettings {
 
 export interface TaskStats {
   taskName: string;
+  taskTypeId?: string;
   count: number;
   medianMin: number;
   isSmallSample: boolean;
