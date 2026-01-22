@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface ConfirmDialogProps {
@@ -39,7 +38,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <button 
             onClick={() => { onConfirm(); onCancel(); }} 
             className={`flex-1 px-4 py-3 text-white rounded-xl font-bold shadow-lg transition-transform active:scale-95 ${
-              isDestructive ? 'bg-red-500 shadow-red-100' : 'bg-[#53BEE8] shadow-blue-100'
+              isDestructive ? 'bg-[#F7893F] shadow-[#F7893F]/20' : 'bg-[#53BEE8] shadow-blue-100'
             }`}
           >
             {confirmText}

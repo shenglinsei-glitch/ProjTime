@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { ProjectCalculatedStats } from '../utils/project';
 import ProjectDot from './ProjectDot';
+import { toISODateString } from '../utils/time';
 
 interface CalendarViewMonthProps {
   projectsWithStats: { project: any, stats: ProjectCalculatedStats }[];
@@ -14,14 +15,16 @@ const CalendarViewMonth: React.FC<CalendarViewMonthProps> = ({ projectsWithStats
   const month = viewDate.getMonth();
   
   const firstDayOfMonth = new Date(year, month, 1).getDay();
+  // Adjust to Monday start
+  const startPadding = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   
-  const prevMonthDays = Array.from({ length: firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1 }).map((_, i) => null);
+  const prevMonthDays = Array.from({ length: startPadding }).map(() => null);
   const currentMonthDays = Array.from({ length: daysInMonth }).map((_, i) => new Date(year, month, i + 1));
   const days = [...prevMonthDays, ...currentMonthDays];
 
   const getDayProjects = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = toISODateString(date);
     return projectsWithStats.filter(p => p.stats.expectedCompletionDate === dateStr);
   };
 
@@ -40,7 +43,7 @@ const CalendarViewMonth: React.FC<CalendarViewMonthProps> = ({ projectsWithStats
         {days.map((date, i) => {
           if (!date) return <div key={`empty-${i}`} className="bg-gray-50 h-24"></div>;
           
-          const isToday = date.toISOString().split('T')[0] === new Date().toISOString().split('T')[0];
+          const isToday = toISODateString(date) === toISODateString(new Date());
           const projects = getDayProjects(date);
 
           return (

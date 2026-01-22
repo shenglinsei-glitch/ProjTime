@@ -1,5 +1,6 @@
 
 import { CalendarSettings, CalendarOverride, CalendarOverrideType } from '../types';
+import { toISODateString } from '../utils/time';
 
 /**
  * 日本の祝日データを外部APIから取得する
@@ -19,7 +20,7 @@ export const fetchJapanHolidays = async (): Promise<string[]> => {
 
 export const isHoliday = (date: Date, settings: CalendarSettings): boolean => {
   if (!settings.useJapanHolidays || !settings.holidayCache) return false;
-  const dateStr = date.toISOString().split('T')[0];
+  const dateStr = toISODateString(date);
   return settings.holidayCache.dates.includes(dateStr);
 };
 
@@ -28,7 +29,7 @@ export const getAvailableMinutesForDate = (
   settings: CalendarSettings, 
   overrides: CalendarOverride[]
 ): number => {
-  const dateStr = date.toISOString().split('T')[0];
+  const dateStr = toISODateString(date);
   const override = overrides.find(o => o.date === dateStr);
   
   if (override) return override.availableMin;
@@ -51,6 +52,7 @@ export const calculateCompletionDate = (
   
   let currentRemaining = remainingMin;
   let currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0);
   
   let safetyCounter = 0;
   while (currentRemaining > 0 && safetyCounter < 1000) {
@@ -64,5 +66,5 @@ export const calculateCompletionDate = (
     safetyCounter++;
   }
   
-  return currentDate.toLocaleDateString('ja-JP');
+  return toISODateString(currentDate);
 };

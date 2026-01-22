@@ -41,15 +41,15 @@ const TimePickerDialog: React.FC<TimePickerDialogProps> = ({
         <h3 className="text-xl font-black mb-6 text-gray-800 tracking-tight">{title}</h3>
         <div className="grid grid-cols-3 gap-3 mb-8">
           <div>
-            <label className="block text-[9px] font-black text-gray-400 uppercase mb-2 tracking-widest text-center">日</label>
+            <label className="block text-[9px] font-black text-gray-400 uppercase mb-2 tracking-widest text-center">d</label>
             <input type="number" value={d} onChange={e => setD(Math.max(0, parseInt(e.target.value) || 0))} className="w-full border-2 border-gray-100 rounded-2xl p-4 text-center font-black outline-none focus:border-[#53BEE8]" />
           </div>
           <div>
-            <label className="block text-[9px] font-black text-gray-400 uppercase mb-2 tracking-widest text-center">時</label>
+            <label className="block text-[9px] font-black text-gray-400 uppercase mb-2 tracking-widest text-center">h</label>
             <input type="number" value={h} onChange={e => setH(Math.max(0, parseInt(e.target.value) || 0))} className="w-full border-2 border-gray-100 rounded-2xl p-4 text-center font-black outline-none focus:border-[#53BEE8]" />
           </div>
           <div>
-            <label className="block text-[9px] font-black text-gray-400 uppercase mb-2 tracking-widest text-center">分</label>
+            <label className="block text-[9px] font-black text-gray-400 uppercase mb-2 tracking-widest text-center">m</label>
             <input type="number" value={m} onChange={e => setM(Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))} className="w-full border-2 border-gray-100 rounded-2xl p-4 text-center font-black outline-none focus:border-[#53BEE8]" />
           </div>
         </div>

@@ -20,7 +20,7 @@ const StatsPage: React.FC = () => {
       const est = pTasks.filter(t => !t.parentTaskId).reduce((s, t) => s + t.estimatedMin, 0);
       const act = pEntries.reduce((s, e) => s + e.actualMin, 0);
       
-      // リーフタスクのみをカウント
+      // Leaf tasks only
       const taskCount = pTasks.filter(t => 
         !pTasks.some(st => st.parentTaskId === t.id)
       ).length;
@@ -37,7 +37,7 @@ const StatsPage: React.FC = () => {
   }, [projects, tasks, timeEntries]);
 
   return (
-    <div>
+    <div className="pb-24">
       <HeaderBar />
       <main className="p-4 md:p-6 max-w-5xl mx-auto">
         <div className="flex bg-gray-100 p-1 rounded-xl mb-6 w-fit">
@@ -71,8 +71,8 @@ const StatsPage: React.FC = () => {
                   <tr key={ps.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 font-semibold text-gray-900">{ps.name}</td>
                     <td className="px-6 py-4 text-right text-gray-700">{formatMinutes(ps.act, settings.standardDailyMin)}</td>
-                    <td className={`px-6 py-4 text-right font-medium ${ps.diff > 0 ? 'text-red-500' : 'text-green-600'}`}>
-                      {ps.diff > 0 ? '+' : ''}{formatMinutes(ps.diff, settings.standardDailyMin)}
+                    <td className={`px-6 py-4 text-right font-medium ${ps.diff > 0 ? 'text-[#F7893F]' : 'text-[#2AC69E]'}`}>
+                      {formatMinutes(ps.diff, settings.standardDailyMin)}
                     </td>
                     <td className="px-6 py-4 text-right text-gray-500">{ps.taskCount}</td>
                   </tr>
@@ -92,7 +92,7 @@ const StatsPage: React.FC = () => {
                     )}
                   </div>
                   <div className="text-3xl font-black text-blue-600 mb-1">
-                    {formatMinutes(ts.medianMin, settings.standardDailyMin).split(' ')[0]}
+                    {formatMinutes(ts.medianMin, settings.standardDailyMin)}
                   </div>
                   <div className="text-xs text-gray-400">実績中央値（予測）</div>
                 </div>

@@ -1,11 +1,10 @@
-
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../store/AppContext';
 import HeaderBar from '../../components/HeaderBar';
 import TimePickerDialog from '../../components/TimePickerDialog';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { formatMinutes } from '../../utils/time';
+import { formatMinutes, toISODateString } from '../../utils/time';
 import { CalendarOverrideType } from '../../types';
 
 const GeneralSettingsPage: React.FC = () => {
@@ -20,7 +19,7 @@ const GeneralSettingsPage: React.FC = () => {
   const [confirmImportData, setConfirmImportData] = useState<any>(null);
 
   // Override Form State
-  const [ovDate, setOvDate] = useState(new Date().toISOString().split('T')[0]);
+  const [ovDate, setOvDate] = useState(toISODateString(new Date()));
   const [ovMin, setOvMin] = useState(0);
   const [ovType, setOvType] = useState<CalendarOverrideType>(CalendarOverrideType.HOLIDAY);
   
@@ -43,7 +42,7 @@ const GeneralSettingsPage: React.FC = () => {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = `time-predictor-backup-${new Date().toISOString().split('T')[0]}.json`; a.click();
+      a.href = url; a.download = `time-predictor-backup-${toISODateString(new Date())}.json`; a.click();
       URL.revokeObjectURL(url);
     } catch (err) { console.error(err); }
   };
@@ -51,7 +50,7 @@ const GeneralSettingsPage: React.FC = () => {
   return (
     <div className="pb-24 text-gray-800">
       <HeaderBar />
-      <main className="p-4 md:p-6 max-w-3xl mx-auto space-y-8">
+      <main className="p-4 md:p-6 max-w-3xl mx-auto space-y-8 overflow-x-hidden">
         <div className="flex items-center gap-2 mb-4">
           <button onClick={() => navigate('/settings')} className="p-2 -ml-2 text-gray-400 hover:text-gray-600 transition">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
@@ -67,7 +66,9 @@ const GeneralSettingsPage: React.FC = () => {
               <div className="text-sm font-black text-gray-800">1日の標準稼働時間</div>
               <div className="text-[10px] text-gray-400 font-bold mt-1 uppercase">工期予測の換算基準</div>
             </div>
-            <button onClick={() => setShowStandardPicker(true)} className="text-blue-500 font-black bg-blue-50 px-5 py-3 rounded-2xl shadow-sm active:scale-95 transition">{formatMinutes(settings.standardDailyMin, settings.standardDailyMin).split(' (')[0]}</button>
+            <button onClick={() => setShowStandardPicker(true)} className="text-blue-500 font-black bg-blue-50 px-5 py-3 rounded-2xl shadow-sm active:scale-95 transition">
+              {formatMinutes(settings.standardDailyMin, settings.standardDailyMin)}
+            </button>
           </div>
           <div className="flex items-center justify-between pt-2">
             <div>
@@ -80,7 +81,7 @@ const GeneralSettingsPage: React.FC = () => {
               <button onClick={handleRefreshHolidays} disabled={isRefreshingHolidays} className="text-[10px] font-black text-blue-400 hover:underline disabled:opacity-50 uppercase tracking-widest">
                 {isRefreshingHolidays ? '更新中' : '今すぐ同期'}
               </button>
-              <input type="checkbox" checked={settings.useJapanHolidays} onChange={e => saveSettings({ ...settings, useJapanHolidays: e.target.checked })} className="w-6 h-6 rounded-lg border-gray-200 text-blue-500 focus:ring-blue-500" />
+              <input type="checkbox" checked={settings.useJapanHolidays} onChange={e => saveSettings({ ...settings, useJapanHolidays: e.target.checked })} className="w-6 h-6 rounded-lg border-gray-200 text-[#53BEE8] focus:ring-[#53BEE8]" />
             </div>
           </div>
         </section>
@@ -89,37 +90,37 @@ const GeneralSettingsPage: React.FC = () => {
         <section className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm">
           <h3 className="text-xs font-black text-blue-400 uppercase tracking-[0.2em] mb-6">カレンダー例外設定</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 bg-gray-50 p-6 rounded-3xl">
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-0">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">日付</label>
-              <input type="date" value={ovDate} onChange={e => setOvDate(e.target.value)} className="w-full border-2 border-transparent rounded-xl p-3 text-sm font-bold outline-none focus:border-blue-400 transition bg-white" />
+              <input type="date" value={ovDate} onChange={e => setOvDate(e.target.value)} className="w-full max-w-full min-w-0 border-2 border-transparent rounded-xl p-3 text-sm font-bold outline-none focus:border-blue-400 transition bg-white" />
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">種別</label>
+            <div className="space-y-1 min-w-0">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">种别</label>
               <select value={ovType} onChange={e => setOvType(e.target.value as CalendarOverrideType)} className="w-full border-2 border-transparent rounded-xl p-3 text-sm font-bold outline-none focus:border-blue-400 bg-white">
-                <option value={CalendarOverrideType.HOLIDAY}>休日 (0分)</option>
+                <option value={CalendarOverrideType.HOLIDAY}>休日 (0m)</option>
                 <option value={CalendarOverrideType.HALF_DAY}>半休 (標準の半分)</option>
                 <option value={CalendarOverrideType.OVERTIME}>残業 (標準+α)</option>
                 <option value={CalendarOverrideType.WORKDAY_ADJUST}>出勤日調整</option>
               </select>
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">稼働可能時間 (分)</label>
+            <div className="space-y-1 min-w-0">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">稼働可能時間 (m)</label>
               <input type="number" value={ovMin} onChange={e => setOvMin(parseInt(e.target.value) || 0)} className="w-full border-2 border-transparent rounded-xl p-3 text-sm font-bold outline-none focus:border-blue-400 bg-white" />
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end min-w-0">
               <button onClick={handleAddOverride} className="w-full bg-blue-400 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-100 active:scale-95 transition">追加する</button>
             </div>
           </div>
           
           <div className="space-y-2">
             {overrides.sort((a,b) => b.date.localeCompare(a.date)).map(ov => (
-              <div key={ov.id} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl group border border-transparent hover:border-blue-100 hover:bg-white transition-all">
-                <div className="flex items-center gap-6">
-                  <span className="text-sm font-black text-gray-700">{ov.date}</span>
-                  <span className="px-3 py-1 bg-white border border-gray-100 text-blue-500 text-[9px] font-black rounded-full uppercase tracking-widest">{ov.type}</span>
-                  <span className="text-[10px] font-bold text-gray-400">{ov.availableMin}分 稼働可能</span>
+              <div key={ov.id} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl group border border-transparent hover:border-blue-100 hover:bg-white transition-all overflow-x-hidden">
+                <div className="flex items-center gap-6 overflow-hidden">
+                  <span className="text-sm font-black text-gray-700 whitespace-nowrap">{ov.date}</span>
+                  <span className="px-3 py-1 bg-white border border-gray-100 text-blue-500 text-[9px] font-black rounded-full uppercase tracking-widest whitespace-nowrap">{ov.type}</span>
+                  <span className="text-[10px] font-bold text-gray-400 whitespace-nowrap">{formatMinutes(ov.availableMin, settings.standardDailyMin)} 稼働可能</span>
                 </div>
-                <button onClick={() => deleteOverride(ov.id)} className="text-red-400 p-2 opacity-0 group-hover:opacity-100 transition">
+                <button onClick={() => deleteOverride(ov.id)} className="text-[#F7893F] p-2 opacity-0 group-hover:opacity-100 transition shrink-0">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 </button>
               </div>

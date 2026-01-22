@@ -20,7 +20,8 @@ const NewProjectPage: React.FC = () => {
       id: newProjectId,
       name: name.trim(),
       area: area ? parseFloat(area) : undefined,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      status: '進行中'
     });
 
     if (sourceProjectId) {

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../store/AppContext';
@@ -82,7 +81,7 @@ const MethodSettingsPage: React.FC = () => {
                     </div>
                     <div className="flex gap-4 opacity-0 group-hover:opacity-100 transition shrink-0">
                       <button onClick={() => { setEditingTagId(mt.id); setEditingTagName(mt.name); setEditingTagMultiplier(mt.multiplier || 1.0); }} className="text-blue-400 text-xs font-bold hover:underline">編集</button>
-                      <button onClick={() => deleteMethodTag(mt.id)} className="text-red-400 text-xs font-bold hover:underline">削除</button>
+                      <button onClick={() => deleteMethodTag(mt.id)} className="text-[#F7893F] text-xs font-bold hover:underline">削除</button>
                     </div>
                   </>
                 )}

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../store/AppContext';
@@ -85,7 +84,7 @@ const PartSettingsPage: React.FC = () => {
                     <div className="flex gap-4 opacity-0 group-hover:opacity-100 transition shrink-0">
                       <button onClick={() => { setEditingPartId(pt.id); setEditingPartName(pt.name); setEditingPartDiff(pt.difficultyMultiplier); }} className="text-blue-400 text-xs font-bold hover:underline">編集</button>
                       <button onClick={() => updatePart({...pt, isDisabled: !pt.isDisabled})} className="text-gray-400 text-xs font-bold hover:underline">{pt.isDisabled ? '有効化' : '非表示'}</button>
-                      <button onClick={() => deletePart(pt.id)} className="text-red-400 text-xs font-bold hover:underline">削除</button>
+                      <button onClick={() => deletePart(pt.id)} className="text-[#F7893F] text-xs font-bold hover:underline">削除</button>
                     </div>
                   </>
                 )}

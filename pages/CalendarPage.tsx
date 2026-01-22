@@ -26,7 +26,7 @@ const CalendarPage: React.FC = () => {
   return (
     <div className="pb-12">
       <HeaderBar onRefresh={refreshData} />
-      <main className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
+      <main className="p-4 md:p-6 max-w-6xl mx-auto space-y-6 pb-24">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <h2 className="text-2xl font-bold">日帰り・予定</h2>

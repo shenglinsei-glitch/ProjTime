@@ -1,4 +1,6 @@
 
+export type ProjectStatus = '未開始' | '進行中' | '作業完了' | '計上済み';
+
 export interface Project {
   id: string;
   name: string;
@@ -10,6 +12,7 @@ export interface Project {
   projectStartDate?: string;
   staff?: string;
   amount?: number;
+  status?: ProjectStatus;
 }
 
 export interface MethodTag {

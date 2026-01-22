@@ -18,7 +18,7 @@ const App: React.FC = () => {
     <AppProvider>
       <HashRouter>
         <div className="min-h-screen bg-slate-50 flex flex-col">
-          <div className="flex-1 pb-20 sm:pb-24">
+          <div className="flex-1 pb-28 sm:pb-32">
             <Routes>
               <Route path="/" element={<ProjectListPage />} />
               <Route path="/new" element={<NewProjectPage />} />

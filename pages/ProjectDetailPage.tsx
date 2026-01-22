@@ -7,18 +7,13 @@ import TimePickerDialog from '../components/TimePickerDialog';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { getTaskCalculatedStats } from '../services/progressService';
 import { calculateTaskMedians } from '../services/estimateService';
-import { Task, Project, TaskType, Part, MethodTag, TaskFolder } from '../types';
-
-// Helper for the specific mobile time format: only letters (m, h, d).
-const formatMobileTime = (mins: number): string => {
-  if (mins === 0 || !mins) return '0m';
-  return `${mins}m`;
-};
+import { formatMinutes, toISODateString } from '../utils/time';
+import { Task, Project, TaskType, Part, MethodTag, TaskFolder, ProjectStatus } from '../types';
 
 const TaskTypeSelectionDialog = ({ onSelect, onClose }: { onSelect: (type: 'standard' | 'free') => void, onClose: () => void }) => (
   <div className="fixed inset-0 z-[700] flex items-end sm:items-center justify-center p-4">
     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
-    <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-w-sm w-full p-6 animate-in slide-in-from-bottom duration-300">
+    <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-w-sm w-full p-6 animate-in slide-in-from-bottom duration-300 overflow-x-hidden">
       <h3 className="text-lg font-black text-gray-800 mb-6 text-center">タスク形式を選択</h3>
       <div className="grid grid-cols-1 gap-3">
         <button 
@@ -41,7 +36,7 @@ const TaskTypeSelectionDialog = ({ onSelect, onClose }: { onSelect: (type: 'stan
   </div>
 );
 
-const TaskEditDialog = ({ project, task, onClose, onSave, onDelete, taskTypes, parts, methodTags, tasks, timeEntries, taskFolders, initialMode }: any) => {
+const TaskEditDialog = ({ project, task, onClose, onSave, onDelete, taskTypes, parts, methodTags, tasks, timeEntries, taskFolders, initialMode, settings }: any) => {
   // If editing existing task, use its isFreeTask flag. If new, use the mode from selection.
   const isFreeMode = task?.id ? task.isFreeTask : initialMode === 'free';
   
@@ -122,7 +117,7 @@ const TaskEditDialog = ({ project, task, onClose, onSave, onDelete, taskTypes, p
   return (
     <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 overflow-y-auto max-h-[90vh]">
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 overflow-y-auto overflow-x-hidden max-h-[90vh]">
         <h3 className="text-xl font-bold mb-6 text-gray-800 tracking-tight">
           {task?.id ? 'タスク設定' : (isFreeMode ? '自由タスク作成' : '標準タスク作成')}
         </h3>
@@ -169,22 +164,22 @@ const TaskEditDialog = ({ project, task, onClose, onSave, onDelete, taskTypes, p
           <div>
             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-widest">予定時間</label>
             <button type="button" onClick={() => setShowPicker(true)} className="w-full text-left border-2 border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-700 bg-gray-50/50 truncate">
-              {formatMobileTime(est)}
-              {!isFreeMode && <span className="text-[10px] text-gray-300 ml-2 font-normal">(実績と倍率に基づき自動計算)</span>}
+              {formatMinutes(est, settings.standardDailyMin)}
+              {!isFreeMode && <span className="text-[10px] text-gray-300 ml-2 font-normal">(自動予測)</span>}
             </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-5">
-            <div>
+            <div className="min-w-0">
               <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-widest">開始日</label>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl p-3 text-xs outline-none font-bold" />
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full max-w-full min-w-0 border-2 border-gray-100 rounded-xl p-3 text-xs outline-none font-bold" />
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-widest">完了期限</label>
-              <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl p-3 text-xs outline-none font-bold" />
+              <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="w-full max-w-full min-w-0 border-2 border-gray-100 rounded-xl p-3 text-xs outline-none font-bold" />
             </div>
           </div>
           <div className="flex justify-between items-center pt-6 border-t">
-            {task?.id && <button type="button" onClick={() => onDelete(task.id)} className="text-red-500 text-xs font-bold px-3 py-2 hover:bg-red-50 rounded-lg transition">タスクを削除</button>}
+            {task?.id && <button type="button" onClick={() => onDelete(task.id)} className="text-[#F7893F] text-xs font-bold px-3 py-2 hover:bg-[#F7893F]/10 rounded-lg transition">タスクを削除</button>}
             <div className="flex gap-2 ml-auto">
               <button type="button" onClick={onClose} className="px-5 py-2.5 text-gray-400 font-bold hover:bg-gray-50 rounded-xl text-sm transition">中止</button>
               <button type="submit" className="px-7 py-2.5 bg-[#53BEE8] text-white rounded-xl font-bold shadow-lg shadow-blue-100 transition hover:opacity-90 text-sm active:scale-95">保存する</button>
@@ -282,7 +277,6 @@ const ProjectDetailPage: React.FC = () => {
           onClick={handleRowClick}
           style={{ paddingLeft: `${16 + depth * 20}px` }}
         >
-          {/* Row 1: Main Info (Task Name -> Progress % -> + Button) */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 min-w-0 pr-2">
               {isContainer && (
@@ -304,7 +298,7 @@ const ProjectDetailPage: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-3 shrink-0">
-              <span className={`font-black text-xs ${stats.isCompleted ? 'text-green-500' : 'text-[#53BEE8]'}`}>
+              <span className={`font-black text-xs ${stats.isCompleted ? 'text-[#2AC69E]' : 'text-[#53BEE8]'}`}>
                 {stats.progressPercent}%
               </span>
               
@@ -322,15 +316,14 @@ const ProjectDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Row 2: Time Info (Compact) */}
           <div className="mt-1 flex items-center gap-2">
             {isParent ? (
               <div className="text-[11px] font-bold text-gray-400 tracking-tight leading-none uppercase">
-                Pln {formatMobileTime(stats.estimatedMin)} <span className="text-gray-200 mx-0.5">|</span> Act {formatMobileTime(stats.actualMin)}
+                Pln {formatMinutes(stats.estimatedMin, settings.standardDailyMin)} <span className="text-gray-200 mx-0.5">|</span> Act {formatMinutes(stats.actualMin, settings.standardDailyMin)}
               </div>
             ) : (
               <div className="text-[10px] font-bold text-gray-400 tracking-tight leading-none uppercase">
-                Act {formatMobileTime(stats.actualMin)}
+                Act {formatMinutes(stats.actualMin, settings.standardDailyMin)}
               </div>
             )}
             {task.deadline && (
@@ -357,6 +350,8 @@ const ProjectDetailPage: React.FC = () => {
     setShowTaskDialog(true);
   };
 
+  const statusOptions: ProjectStatus[] = ['未開始', '進行中', '作業完了', '計上済み'];
+
   return (
     <div className="pb-24">
       <HeaderBar onRefresh={refreshData} />
@@ -377,7 +372,7 @@ const ProjectDetailPage: React.FC = () => {
             {showMoreMenu && (
               <div className="absolute top-10 right-0 w-40 bg-white border rounded shadow-lg z-[60] py-1">
                 <button onClick={() => { setIsEditingProject(true); setShowMoreMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 border-b">基本情報を編集</button>
-                <button onClick={() => { setShowDeleteConfirm(true); setShowMoreMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 font-bold">プロジェクト削除</button>
+                <button onClick={() => { setShowDeleteConfirm(true); setShowMoreMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-[#F7893F] hover:bg-[#F7893F]/10 font-bold">プロジェクト削除</button>
               </div>
             )}
             {isEditingProject && <button onClick={async () => { await updateProject(tempProject); setIsEditingProject(false); }} className="bg-[#53BEE8] text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-100 active:scale-95 transition">保存</button>}
@@ -394,7 +389,7 @@ const ProjectDetailPage: React.FC = () => {
               <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">基本情報</h3>
               {!isInfoExpanded && (
                 <div className="text-[11px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
-                  進捗 {totalProgress}% <span className="mx-1 text-blue-200">|</span> 期限 {projectDeadline || '未設定'}
+                  進捗 {totalProgress}% <span className="mx-1 text-blue-200">|</span> {originalProject.status || '進行中'}
                 </div>
               )}
             </div>
@@ -404,12 +399,26 @@ const ProjectDetailPage: React.FC = () => {
           {isInfoExpanded && (
             <div className="p-5 space-y-6">
               <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                <DetailRow 
+                  label="ステータス" 
+                  isEditing={isEditingProject} 
+                  value={originalProject.status || '進行中'} 
+                  editNode={
+                    <select 
+                      className="w-full border-b outline-none font-bold focus:border-[#53BEE8] py-1 text-sm bg-white" 
+                      value={tempProject.status || '進行中'} 
+                      onChange={e => setTempProject({...tempProject, status: e.target.value as ProjectStatus})}
+                    >
+                      {statusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  } 
+                />
                 <DetailRow label="面積" isEditing={isEditingProject} value={originalProject.area ? `${originalProject.area} ㎡` : ''} editNode={<input type="number" className="w-full border-b outline-none font-bold focus:border-[#53BEE8] py-1 text-right text-sm" value={tempProject.area || ''} onChange={e => setTempProject({...tempProject, area: parseFloat(e.target.value) || 0})}/>} />
                 <DetailRow label="開始日" isEditing={isEditingProject} value={originalProject.projectStartDate || ''} editNode={<input type="date" className="w-full border-b outline-none font-bold focus:border-[#53BEE8] py-1 text-sm" value={tempProject.projectStartDate || ''} onChange={e => setTempProject({...tempProject, projectStartDate: e.target.value})}/>} />
                 <DetailRow label="担当者" isEditing={isEditingProject} value={originalProject.staff || ''} editNode={<input type="text" className="w-full border-b outline-none font-bold focus:border-[#53BEE8] py-1 text-sm" value={tempProject.staff || ''} onChange={e => setTempProject({...tempProject, staff: e.target.value})}/>} />
                 <DetailRow label="金額" isEditing={isEditingProject} value={originalProject.amount ? `¥${originalProject.amount.toLocaleString()}` : ''} editNode={<input type="number" className="w-full border-b outline-none font-bold focus:border-[#53BEE8] py-1 text-right text-sm" value={tempProject.amount || ''} onChange={e => setTempProject({...tempProject, amount: parseInt(e.target.value) || 0})}/>} />
                 
-                <div className="col-span-2 pt-1">
+                <div className="col-span-1 pt-1">
                   <span className="text-gray-400 font-bold text-[9px] uppercase tracking-wider block mb-1.5">適用工法</span>
                   {isEditingProject ? (
                     <div className="flex flex-wrap gap-1.5">
@@ -440,7 +449,7 @@ const ProjectDetailPage: React.FC = () => {
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">全体進捗</span>
                     <div className="text-[11px] font-bold text-gray-400 leading-none">
                       <span className="text-gray-800 text-sm font-black">{totalProgress}%</span> 
-                      <span className="ml-1 text-[9px] uppercase">(Act {formatMobileTime(projectStats.act)} / Pln {formatMobileTime(projectStats.est)})</span>
+                      <span className="ml-1 text-[9px] uppercase">(Act {formatMinutes(projectStats.act, settings.standardDailyMin)} / Pln {formatMinutes(projectStats.est, settings.standardDailyMin)})</span>
                     </div>
                   </div>
                   <div className="w-full bg-gray-50 rounded-full h-1.5 overflow-hidden border border-gray-50">
@@ -493,13 +502,14 @@ const ProjectDetailPage: React.FC = () => {
           tasks={tasks} 
           timeEntries={timeEntries} 
           taskFolders={taskFolders} 
+          settings={settings}
           onClose={() => setShowTaskDialog(false)} 
           onSave={async (t: Task) => { if (t.id && projectTasks.some(pt => pt.id === t.id)) await updateTask(t); else await addTask(t); setShowTaskDialog(false); }} 
           onDelete={async (tid: string) => { setTaskToDeleteId(tid); setShowTaskDialog(false); }} 
         />
       )}
 
-      <TimePickerDialog isOpen={!!showTimePicker} onClose={() => setShowTimePicker(null)} initialMinutes={0} showCompletionToggle={true} onSave={(mins, isCompleted) => { if (showTimePicker) { addTimeEntry({ id: crypto.randomUUID(), projectId: originalProject.id, taskId: showTimePicker.taskId, date: new Date().toISOString().split('T')[0], actualMin: mins, isCompleted }); } }} title="実績時間を入力" />
+      <TimePickerDialog isOpen={!!showTimePicker} onClose={() => setShowTimePicker(null)} initialMinutes={0} showCompletionToggle={true} onSave={(mins, isCompleted) => { if (showTimePicker) { addTimeEntry({ id: crypto.randomUUID(), projectId: originalProject.id, taskId: showTimePicker.taskId, date: toISODateString(new Date()), actualMin: mins, isCompleted }); } }} title="実績時間を入力" />
 
       <ConfirmDialog isOpen={showDeleteConfirm} title="プロジェクト削除" message="このプロジェクトとすべての実績記録を削除します。この操作は取り消せません。" onConfirm={async () => { await deleteProject(originalProject.id); navigate('/'); }} onCancel={() => setShowDeleteConfirm(false)} isDestructive />
       <ConfirmDialog isOpen={!!taskToDeleteId} title="タスク削除" message="このタスクを削除しますか？子タスクがある場合、それらもすべて削除されます。" onConfirm={async () => { if(taskToDeleteId) await deleteTask(taskToDeleteId); setTaskToDeleteId(null); refreshData(); }} onCancel={() => setTaskToDeleteId(null)} isDestructive />

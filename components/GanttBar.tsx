@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { ProjectCalculatedStats } from '../utils/project';
 import { useNavigate } from 'react-router-dom';
+import { parseISODate } from '../utils/time';
 
 interface GanttBarProps {
   project: any;
@@ -14,23 +14,23 @@ const GanttBar: React.FC<GanttBarProps> = ({ project, stats, timelineStart, time
   const navigate = useNavigate();
   const totalDuration = timelineEnd - timelineStart;
   
-  const start = new Date(project.startDate || project.createdAt).getTime();
-  const end = new Date(stats.expectedCompletionDate).getTime();
+  const start = parseISODate(project.startDate || toISODateString(new Date(project.createdAt))).getTime();
+  const end = parseISODate(stats.expectedCompletionDate).getTime();
   
   const left = Math.max(0, ((start - timelineStart) / totalDuration) * 100);
   const width = Math.min(100 - left, ((end - start) / totalDuration) * 100);
   
   let deadlineMarker = null;
   if (project.deadline) {
-    const dTime = new Date(project.deadline).getTime();
+    const dTime = parseISODate(project.deadline).getTime();
     if (dTime >= timelineStart && dTime <= timelineEnd) {
       const dLeft = ((dTime - timelineStart) / totalDuration) * 100;
       deadlineMarker = (
         <div 
-          className="absolute top-0 bottom-0 w-px bg-red-400 z-10 opacity-50 pointer-events-none"
+          className="absolute top-0 bottom-0 w-px bg-[#F7893F] z-10 opacity-50 pointer-events-none"
           style={{ left: `${dLeft}%` }}
         >
-          <div className="text-[8px] bg-red-400 text-white px-1 -ml-2 rounded-sm transform -rotate-90 origin-bottom-left">Deadline</div>
+          <div className="text-[8px] bg-[#F7893F] text-white px-1 -ml-2 rounded-sm transform -rotate-90 origin-bottom-left">Deadline</div>
         </div>
       );
     }
@@ -57,5 +57,13 @@ const GanttBar: React.FC<GanttBarProps> = ({ project, stats, timelineStart, time
     </div>
   );
 };
+
+// Helper for createdAt string conversion if needed
+function toISODateString(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
 
 export default GanttBar;

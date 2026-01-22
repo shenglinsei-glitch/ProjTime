@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,9 +12,9 @@ const ProjectDot: React.FC<ProjectDotProps> = ({ id, name, status, isGray = fals
   const navigate = useNavigate();
   
   const colors = {
-    normal: 'bg-green-500',
+    normal: 'bg-[#2AC69E]',
     tense: 'bg-orange-500',
-    overdue: 'bg-red-500'
+    overdue: 'bg-[#F7893F]'
   };
 
   return (

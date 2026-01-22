@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { ProjectCalculatedStats } from '../utils/project';
 import ProjectDot from './ProjectDot';
+import { toISODateString } from '../utils/time';
 
 interface CalendarViewWeekProps {
   projectsWithStats: { project: any, stats: ProjectCalculatedStats }[];
@@ -9,11 +9,12 @@ interface CalendarViewWeekProps {
 
 const CalendarViewWeek: React.FC<CalendarViewWeekProps> = ({ projectsWithStats }) => {
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const startOfWeek = new Date(today);
   const day = today.getDay();
-  const diff = today.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+  // Adjust to Monday start
+  const diff = today.getDate() - day + (day === 0 ? -6 : 1);
   startOfWeek.setDate(diff);
-  startOfWeek.setHours(0,0,0,0);
 
   const weekDays = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date(startOfWeek);
@@ -22,7 +23,7 @@ const CalendarViewWeek: React.FC<CalendarViewWeekProps> = ({ projectsWithStats }
   });
 
   const getDayProjects = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = toISODateString(date);
     return projectsWithStats.filter(p => p.stats.expectedCompletionDate === dateStr);
   };
 
@@ -36,14 +37,14 @@ const CalendarViewWeek: React.FC<CalendarViewWeekProps> = ({ projectsWithStats }
           <div className="text-2xl font-black text-blue-600">{projectsWithStats.length}</div>
         </div>
         <div className="flex-1">
-          <div className="text-[10px] font-bold text-red-400 uppercase">期限切れ/リスク</div>
-          <div className="text-2xl font-black text-red-600">{overdueCount}</div>
+          <div className="text-[10px] font-bold text-[#F7893F] uppercase">期限切れ/リスク</div>
+          <div className="text-2xl font-black text-[#F7893F]">{overdueCount}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-7 gap-2 h-[400px]">
         {weekDays.map(date => {
-          const isToday = date.toISOString().split('T')[0] === new Date().toISOString().split('T')[0];
+          const isToday = toISODateString(date) === toISODateString(new Date());
           const projects = getDayProjects(date);
           
           return (

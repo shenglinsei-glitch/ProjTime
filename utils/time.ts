@@ -1,17 +1,38 @@
 
+export const parseISODate = (dateStr: string): Date => {
+  if (!dateStr) return new Date();
+  const [y, m, d] = dateStr.split(/[-/]/).map(Number);
+  // Month is 0-indexed in Date constructor
+  return new Date(y, m - 1, d, 0, 0, 0, 0);
+};
+
+export const toISODateString = (date: Date): string => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
 export const formatMinutes = (totalMin: number, dailyStandardMin: number = 480): string => {
   const isNegative = totalMin < 0;
   const absMin = Math.abs(totalMin);
-  
-  const hours = Math.floor(absMin / 60);
-  const minutes = absMin % 60;
-  const days = (absMin / dailyStandardMin).toFixed(1);
+  const sign = isNegative ? '-' : '';
 
-  let result = `${isNegative ? '-' : ''}${hours}時間 ${minutes}分`;
-  if (absMin > 0) {
-    result += ` (≈${isNegative ? '-' : ''}${days}日)`;
+  if (!absMin || absMin === 0) return '0m';
+  
+  if (absMin < 60) {
+    return `${sign}${absMin}m`;
   }
-  return result;
+  
+  if (absMin < dailyStandardMin * 2) {
+    const hours = absMin / 60;
+    const formatted = parseFloat(hours.toFixed(1));
+    return `${sign}${formatted}h`;
+  }
+  
+  const days = absMin / dailyStandardMin;
+  const formatted = parseFloat(days.toFixed(1));
+  return `${sign}${formatted}d`;
 };
 
 export const parseDuration = (d: number, h: number, m: number): number => {
@@ -19,7 +40,7 @@ export const parseDuration = (d: number, h: number, m: number): number => {
 };
 
 export const getRelativeDays = (dateStr: string): number => {
-  const target = new Date(dateStr);
+  const target = parseISODate(dateStr);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const diffTime = target.getTime() - today.getTime();
@@ -27,5 +48,5 @@ export const getRelativeDays = (dateStr: string): number => {
 };
 
 export const formatDateShort = (dateStr: string): string => {
-  return new Date(dateStr).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+  return parseISODate(dateStr).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
 };
