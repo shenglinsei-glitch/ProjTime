@@ -2,7 +2,6 @@
 export const parseISODate = (dateStr: string): Date => {
   if (!dateStr) return new Date();
   const [y, m, d] = dateStr.split(/[-/]/).map(Number);
-  // Month is 0-indexed in Date constructor
   return new Date(y, m - 1, d, 0, 0, 0, 0);
 };
 
@@ -35,6 +34,17 @@ export const formatMinutes = (totalMin: number, dailyStandardMin: number = 480):
   return `${sign}${formatted}d`;
 };
 
+/**
+ * m < 60 -> "${m}m"
+ * m >= 60 -> h = m/60. If integer -> "${h}h", else -> "${round(h*10)/10}h"
+ */
+export const formatTimerMinutes = (m: number): string => {
+  if (m < 60) return `${m}m`;
+  const h = m / 60;
+  if (m % 60 === 0) return `${h}h`;
+  return `${Math.round(h * 10) / 10}h`;
+};
+
 export const parseDuration = (d: number, h: number, m: number): number => {
   return (d * 8 * 60) + (h * 60) + m;
 };
@@ -49,4 +59,13 @@ export const getRelativeDays = (dateStr: string): number => {
 
 export const formatDateShort = (dateStr: string): string => {
   return parseISODate(dateStr).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+};
+
+export const formatDateTime = (timestamp: number): string => {
+  const d = new Date(timestamp);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${mm}/${dd} ${hh}:${min}`;
 };

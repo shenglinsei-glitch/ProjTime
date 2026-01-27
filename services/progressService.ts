@@ -7,6 +7,8 @@ export interface TaskCalculatedStats {
   progressPercent: number;
   isCompleted: boolean;
   childCount: number;
+  // Amount by which actual minutes exceed estimated minutes
+  overrunMin: number;
 }
 
 export const getTaskCalculatedStats = (
@@ -19,43 +21,59 @@ export const getTaskCalculatedStats = (
   const entries = allEntries.filter(e => e.taskId === taskId);
 
   if (children.length === 0) {
-    // 叶子任务
+    // Leaf Task
+    // Current task is completed if any time entry for it is marked as completed
     const isCompleted = entries.some(e => e.isCompleted);
-    const actualMin = entries.reduce((s, e) => s + e.actualMin, 0);
+    
+    // Priority: Manual Input > Sum of Entries
+    const autoActualMin = entries.reduce((s, e) => s + e.actualMin, 0);
+    const actualMin = task?.manualActualMin !== undefined ? task.manualActualMin : autoActualMin;
+    const estimatedMin = task?.estimatedMin || 0;
+    
+    const overrunMin = Math.max(0, actualMin - estimatedMin);
+
+    let progressPercent = 0;
+    if (isCompleted) {
+      progressPercent = 100;
+    } else if (estimatedMin > 0) {
+      // Progress based on time ratio, capped at 99% if not marked as completed
+      const rawProgress = Math.round((actualMin / estimatedMin) * 100);
+      progressPercent = Math.min(99, Math.max(0, rawProgress));
+    }
+
     return {
-      estimatedMin: task?.estimatedMin || 0,
+      estimatedMin,
       actualMin,
-      progressPercent: isCompleted ? 100 : 0,
+      progressPercent,
       isCompleted,
-      childCount: 0
+      childCount: 0,
+      overrunMin
     };
   }
 
-  // 容器任务
+  // Container Task (Folder/Phase)
   let totalEst = 0;
-  let completedEst = 0;
   let totalAct = 0;
+  let totalCompletedWeight = 0;
 
   children.forEach(child => {
     const childStats = getTaskCalculatedStats(child.id, allTasks, allEntries);
     totalEst += childStats.estimatedMin;
     totalAct += childStats.actualMin;
-    if (childStats.isCompleted) {
-      completedEst += childStats.estimatedMin;
-    } else {
-      // 部分完成的任务按比例加权（可选，这里采用严格的已完成子项预计值合计）
-      completedEst += (childStats.estimatedMin * (childStats.progressPercent / 100));
-    }
+    // Weighted progress aggregation
+    totalCompletedWeight += (childStats.estimatedMin * (childStats.progressPercent / 100));
   });
 
-  const progressPercent = totalEst > 0 ? Math.round((completedEst / totalEst) * 100) : 0;
+  const progressPercent = totalEst > 0 ? Math.round((totalCompletedWeight / totalEst) * 100) : 0;
   const isCompleted = progressPercent === 100;
+  const overrunMin = Math.max(0, totalAct - totalEst);
 
   return {
     estimatedMin: totalEst,
     actualMin: totalAct,
     progressPercent,
     isCompleted,
-    childCount: children.length
+    childCount: children.length,
+    overrunMin
   };
 };

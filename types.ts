@@ -8,7 +8,6 @@ export interface Project {
   area?: number;
   constructionMethods?: string[]; // IDs of MethodTag
   tags?: string[];
-  // 新規フィールド
   projectStartDate?: string;
   staff?: string;
   amount?: number;
@@ -18,26 +17,23 @@ export interface Project {
 export interface MethodTag {
   id: string;
   name: string;
-  multiplier?: number; // Added for prediction
+  multiplier?: number;
 }
 
-// 新設: 文件夹管理
 export interface TaskFolder {
   id: string;
   name: string;
   order: number;
 }
 
-// 新設: 任务名称管理
 export interface TaskType {
   id: string;
   name: string;
-  folderId?: string; // Optional folder association
+  folderId?: string;
   order: number;
   isDisabled: boolean;
 }
 
-// 新設: 部位管理
 export interface Part {
   id: string;
   name: string;
@@ -46,20 +42,29 @@ export interface Part {
   isDisabled: boolean;
 }
 
+export interface TaskTimer {
+  isRunning: boolean;
+  startedAt?: number;
+  accumulatedMs: number;
+}
+
 export interface Task {
   id: string;
   projectId: string;
-  name: string; // Keep for display/backward compatibility, but taskTypeId is source of truth
-  taskTypeId?: string; // Standardized ID
-  partId?: string; // Standardized Part ID
+  name: string;
+  taskTypeId?: string;
+  partId?: string;
   labels: string[];
   estimatedMin: number;
   isManualEstimate: boolean;
   parentTaskId?: string;
   startDate?: string;
   deadline?: string;
-  // 新規：自由タスク（統計除外）フラグ
   isFreeTask?: boolean;
+  // Timer State
+  timer?: TaskTimer;
+  // Manual Actual Time Override
+  manualActualMin?: number;
 }
 
 export interface TimeEntry {
@@ -71,6 +76,9 @@ export interface TimeEntry {
   note?: string;
   isExcludedFromStats?: boolean;
   isCompleted?: boolean;
+  // Timer metadata
+  startAt?: number;
+  endAt?: number;
 }
 
 export enum CalendarOverrideType {

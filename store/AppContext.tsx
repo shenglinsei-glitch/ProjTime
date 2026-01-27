@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { Project, Task, TimeEntry, CalendarSettings, CalendarOverride, MethodTag, TaskType, Part, HolidayCache, TaskFolder } from '../types';
 import { dbStore } from './db';
 import { fetchJapanHolidays } from '../services/calendarService';
+import { toISODateString } from '../utils/time';
 
 interface ExportData {
   projects: Project[];
@@ -55,6 +56,10 @@ interface AppContextType {
   exportAllData: () => Promise<ExportData>;
   importAllData: (data: ExportData) => Promise<void>;
   refreshHolidays: (force?: boolean) => Promise<void>;
+  // Timer Actions
+  startTimer: (taskId: string) => Promise<void>;
+  pauseTimer: (taskId: string) => Promise<void>;
+  stopTimer: (taskId: string, note?: string, markCompleted?: boolean) => Promise<{ durationMin: number, startAt: number, endAt: number } | null>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -167,6 +172,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addTimeEntry = async (e: TimeEntry) => { await dbStore.put('timeEntries', e); await refreshData(); };
   const updateTimeEntry = async (e: TimeEntry) => { await dbStore.put('timeEntries', e); await refreshData(); };
   const deleteTimeEntry = async (id: string) => { await dbStore.delete('timeEntries', id); await refreshData(); };
+  
   const saveSettings = async (s: CalendarSettings) => { await dbStore.put('settings', { ...s, id: 'global' }); await refreshData(); };
   const addOverride = async (o: CalendarOverride) => { await dbStore.put('overrides', o); await refreshData(); };
   const deleteOverride = async (id: string) => { await dbStore.delete('overrides', id); await refreshData(); };
@@ -185,6 +191,73 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addTaskFolder = async (item: TaskFolder) => { await dbStore.put('taskFolders', item); await refreshData(); };
   const updateTaskFolder = async (item: TaskFolder) => { await dbStore.put('taskFolders', item); await refreshData(); };
   const deleteTaskFolder = async (id: string) => { await dbStore.delete('taskFolders', id); await refreshData(); };
+
+  // Timer Actions
+  const startTimer = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    if (task.timer?.isRunning) return;
+
+    const newTimer = {
+      isRunning: true,
+      startedAt: Date.now(),
+      accumulatedMs: task.timer?.accumulatedMs || 0
+    };
+    await updateTask({ ...task, timer: newTimer });
+  };
+
+  const pauseTimer = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || !task.timer?.isRunning || !task.timer.startedAt) return;
+
+    const deltaMs = Date.now() - task.timer.startedAt;
+    const newTimer = {
+      isRunning: false,
+      startedAt: undefined,
+      accumulatedMs: task.timer.accumulatedMs + deltaMs
+    };
+    await updateTask({ ...task, timer: newTimer });
+  };
+
+  const stopTimer = async (taskId: string, note: string = '', markCompleted: boolean = false): Promise<{ durationMin: number, startAt: number, endAt: number } | null> => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || !task.timer) return null;
+
+    let totalMs = task.timer.accumulatedMs;
+    let startedAt = task.timer.startedAt;
+    const endAt = Date.now();
+
+    if (task.timer.isRunning && startedAt) {
+      totalMs += (endAt - startedAt);
+    } else {
+      startedAt = startedAt || endAt - totalMs;
+    }
+
+    const durationMin = Math.round(totalMs / 60000);
+    
+    // Reset Timer regardless of duration
+    await updateTask({ 
+      ...task, 
+      timer: { isRunning: false, startedAt: undefined, accumulatedMs: 0 } 
+    });
+
+    // If mins is 0 but marked completed, still create an entry to signal completion
+    if (durationMin <= 0 && !markCompleted) return null;
+
+    const entry: TimeEntry = {
+      id: crypto.randomUUID(),
+      projectId: task.projectId,
+      taskId: task.id,
+      date: toISODateString(new Date()),
+      actualMin: Math.max(0, durationMin),
+      note: note.trim() || undefined,
+      startAt: startedAt,
+      endAt: endAt,
+      isCompleted: markCompleted
+    };
+    await addTimeEntry(entry);
+    return { durationMin, startAt: startedAt || 0, endAt };
+  };
 
   const exportAllData = async (): Promise<ExportData> => {
     const [p, t, e, s, ov, mt, tt, pt, tf] = await Promise.all([
@@ -222,7 +295,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       saveSettings, addOverride, deleteOverride, addMethodTag, updateMethodTag, deleteMethodTag,
       addTaskType, updateTaskType, deleteTaskType, addPart, updatePart, deletePart,
       addTaskFolder, updateTaskFolder, deleteTaskFolder,
-      exportAllData, importAllData, refreshHolidays
+      exportAllData, importAllData, refreshHolidays,
+      startTimer, pauseTimer, stopTimer
     }}>
       {children}
     </AppContext.Provider>
